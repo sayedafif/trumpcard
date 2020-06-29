@@ -32,7 +32,8 @@ If you navigate back to your terminal you will see a message indicating a new cl
 4. Check if it says Listening on *3000 
 5. Open Browser. For player 1- Go to localhost:3000
 6. Open another tab in browser. For player 2 - Go to localhost:3000
-7. Give names to each tab. Play
+7. For player 2 . You can also play in phone. Get hostname of your computer. Then on mobile phone - open browser - go to computerhostname:3000
+8. Give names to each player. Play
 
 
 #### Using the application
