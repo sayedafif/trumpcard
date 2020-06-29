@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Trump Cards</title>
+    <link rel="stylesheet" href="public/styles.css">
+</head>
+
+<body>
+    
+    <H1>Trump Cards</H1>
+   <div id= "turn"></div>
+    <div id= "handwinner"></div>
+    <div id="name">
+        <ul id="player"></ul>
+        <p></p>
+        <form action="" id="p"> user id
+            <input id="n" autocomplete="off" />
+            <button>Sim log in </button>
+        </form>
+    </div>
+
+    
+    
+    <div id="game">
+        <ul id="moves"></ul>
+        <form action="" id="a"> move
+            <input id="jk" autocomplete="off" />
+            <button>Send move </button>
+        </form>
+    </div>
+    
+    <div id="challenge">
+        <form action="" id="c"> user id
+            <input id="ch" autocomplete="off" />
+            <button>challenger id </button>
+        </form>
+    </div>
+    <div id="allusers"></div>
+    <ul id="cardid"></ul>
+    <ul id="win"></ul>
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+
+<script>
+    
+    //console.log(cards);
+    //sets room
+    var x;
+    var challenger;
+    var iamP1 = false;
+    var turn = document.getElementById("turn");
+    var hw = document.getElementById("handwinner");
+    
+    
+    
+    var username;
+    
+     $('#p').submit(function () {
+         username = $('#n').val();
+        socket.emit('connectPlayer', $('#n').val());
+        // $('#n').val('');
+        return false;
+    });
+    
+    
+    //var room;
+    
+    var socket = io();
+    $('#c').submit(function () {
+        socket.emit('challenge',username, $('#ch').val());
+        challenger = $('#ch').val();
+        iamP1 = true;
+        //$('#m').val('');
+        return false;
+    });
+    
+    $('#move').submit(function () {
+        socket.emit('playcat1', $('#n').val());
+        //$('#m').val('');
+        return false;
+    });
+   
+    //move, playerId, roomId
+    $('#a').submit(function () {
+        socket.emit('playermove', $('#jk').val(), $('#n').val(), x);
+        $('#jk').val('');
+        return false;
+    });
+    socket.on('playerTurn', function (msg) {
+        turn.innerHTML = "user ids turn is " + msg;
+       // console.log(x);
+    });
+    
+   socket.on('roomname', function (msg) {
+        x = msg;
+        console.log(x);
+    });
+    
+    socket.on(username, function (msg) {
+    
+        console.log("myre" + msg);
+    });
+
+
+    socket.on('gameStarted', function (msg) {
+        socket.emit('mycard', name, x);
+    });
+    socket.on('incomingchellange', function (msg, msg2) {
+        console.log(msg, msg2);
+        challenger = msg;
+        x = msg2;
+        challengeAlert();
+    });
+    ///handWonBy
+    socket.on('handWonBy', function (msg) {
+        hw.innerHTML = "hand won by user id:" + msg;
+       // console.log(x);
+    });
+    socket.on('start', function (msg) {
+        $('#name').append($('<p>').text(msg));
+    });
+    socket.on('movement', function (msg) {
+        $('#messages').append($('<li>').text(msg));
+    });
+    socket.on('connectToRoom', function (msg) {
+        $('#messages').append($('<li>').text(msg));
+    });
+    socket.on('player', function (msg) {
+        $('#player').append($('<li>').text(msg));
+    });
+    socket.on('card', function (msg) {
+        $('#cardid').append($('<li>').text(msg));
+    });
+    socket.on('winner', function (msg) {
+        $('#win').append($('<li>').text(msg));
+        //playerId, roomId
+        socket.emit('finishgame', $('#n').val(), x);
+       
+    });
+    
+    
+    
+    function challengeAlert() {
+        socket.emit('acceptchallenge', challenger, username, x);
+}
+        
+</script>
+    
+    
+    </body>
+
+</html>

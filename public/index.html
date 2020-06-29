@@ -1,0 +1,391 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Trump Card Game</title>
+    <!-- css files-->
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="styles.css"> </head>
+
+<body>
+    <div class="container">
+        <!--vertical-center aligns all content to center vertically this will be displayed on start up
+        hidden when the user logs in sucessifully-->
+        <div class="row vertical-center " id="loginScreen">
+            <!--algins all content to center-->
+            <div class="center-all-content center-block col-lg-6 col-md-6 col-lg-offset-3 col-md-offset-3 col-sm-8 col-xs-10 col-sm-offset-2 col-xs-offset-1">
+                <!--creates line-->
+                <hr>
+                <h1> TrumpCard Game</h1>
+                <!--error message holding block--><span class="error" id="error">
+                    </span>
+                <form action="" id="loginform" class="myStack">
+                    <fieldset>
+                        <!--top input block for username-->
+                        <div class="col-lg-6 col-md-6 col-lg-offset-3 col-md-offset-3 col-sm-8 col-xs-10 col-sm-offset-2 col-xs-offset-1">
+                            <input id="n" autocomplete="off" type="text" name="username" placeholder="Username:" class="stackStart " /> </div>
+                    </fieldset>
+                    <button class="log_btn">Log In </button>
+                </form>
+                <hr> </div>
+        </div>
+        <!-- hidden on start up -- this is used to display all users currently connected
+            itt contains buttons for each user to allow that user to be challenged-->
+        <div id="users">
+            <div class="row vertical-center">
+                <!--algins all content to center-->
+                <div class="center-all-content center-block col-lg-12">
+                    <h1 id="welcome"> Weclome</h1>
+                    <div id="userbuttons"> </div>
+                    <h1> Click on user to issue a challenge!</h1> </div>
+            </div>
+        </div>
+        <!-- this is hidden and is aonly triggered when a game is in play
+            it houses the users card and the game info-->
+        <div id="inplay">
+            <div class="row">
+                <!--algins all content to center-->
+                <div class="center-all-content center-block col-lg-12">
+                    <h1 id="playernames"> Test</h1>
+                    <!-- users card-->
+                    <div id="card " class="col-md-6 cardbg">
+                        <div class="cardbgcolour">
+                            <div id="cardpic"></div>
+                            <div id="cardname"></div>
+                            <div id="cardbuttons"> </div>
+                            <div id="gamemsg"></div>
+                        </div>
+                    </div>
+                    <!--compare screen-->
+                    <div id="compare " class="col-md-6 result">
+                        <div id="usercardpic"></div>
+                        <div id="detail1"></div>
+                        <div id='remain1'></div>
+                        <div id="oppcardpic"></div>
+                        <div id="detail2"></div>
+                        <div id='remain2'></div>
+                        <div id="winmsg"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- game over screen this is hidden and is diplayed when a game finishes-- it has a button that will reload the users screen-->
+        <div class="row vertical-center " id="gameover">
+            <!--algins all content to center-->
+            <div class="center-all-content center-block col-lg-6 col-md-6 col-lg-offset-3 col-md-offset-3 col-sm-8 col-xs-10 col-sm-offset-2 col-xs-offset-1">
+                <div id="winimage"></div>
+                <button class="play log_btn" onclick="reload()">Play Again</button>
+            </div>
+        </div>
+    </div>
+</body>
+<!--js resoucres-->
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<script src="bootstrap/js/bootstrap.min.js"></script>
+<script src="https://cdn.rawgit.com/nnattawat/flip/master/dist/jquery.flip.min.js">
+</script>
+<script>
+    //for the button a user selects on a cards 
+    var cat1 = "cat1";
+    var cat2 = "cat2";
+    var cat3 = "cat3";
+    var cat4 = "cat4";
+    var cat5 = "cat5";
+    var cat6 = "cat6";
+    //used to hide all screen except the login on start up
+    $('#hide').hide();
+    $('#users').hide();
+    $('#inplay').hide();
+    $('#gameover').hide();
+    //sets the socket
+    var socket = io();
+    //used to store whos turn it is-- can be conmared to the username to see if it is this users turn
+    var turn;
+    //both users cards
+    var myCard;
+    var oppCard;
+    //alll cards
+    var cards;
+    //gets the cards from the external json file and stores them in the cards var above
+    $(function () {
+        $.getJSON('cards.JSON', function (data) {
+            cards = data.cards;
+            /*$.each(data.cards,function(i,emp){
+                console.log(emp);
+            });
+        }).error(function(){
+            console.log('error');*/
+        });
+    });
+    //sets room
+    var x;
+    //the other player
+    var challenger;
+    //if u are p1 on the server side (p1 is the challenger)
+    var iamP1 = false;
+    //var turn = document.getElementById("turn");
+    // var hw = document.getElementById("handwinner");
+    //stores ur user name
+    var username;
+    //when the user submits a login this func is triggered
+    $('#loginform').submit(function (e) {
+        e.preventDefault();
+        //stores the users username
+        username = $('#n').val();
+        //sends a message to the server with the username and awaits a callback respose to see if the name is available
+        socket.emit('connectPlayer', $('#n').val(), function (callb) {
+            //if iits available
+            if (callb) {
+                //hide the login screen and show the users screen
+                $('#loginScreen').hide();
+                $('#users').show();
+            }
+            //show error if its already taken
+            else {
+                document.getElementById("error").innerHTML = "A user with the username " + username + " is already logged in";
+            }
+            return false;
+        });
+    });
+    //when the server sends the list of all connected users
+    socket.on('userList', function (msg) {
+        //console.log(msg);
+        //displays welcom msg
+        document.getElementById("welcome").innerHTML = "Welcome " + username;
+        //gets the area for the user buttons
+        document.getElementById("userbuttons").innerHTML = "";
+        //loops through the array of the users
+        $.each(msg, function (i, id) {
+            //if the user is this user do nothing
+            if (id.nickname === username) {
+                console.log("ture");
+            }
+            //for every othe user thats connected
+            else if (id.isConnected == true) {
+                //add a button
+                var btn = document.createElement("BUTTON");
+                //set the click function
+                btn.onclick = clientButtonClicked;
+                var textnode = document.createTextNode(id.nickname);
+                btn.appendChild(textnode);
+                document.getElementById("userbuttons").appendChild(btn);
+            }
+        });
+    });
+    //When any of the client buttons are cliecked to trigger a challenge
+    function clientButtonClicked() {
+        //Tell the server this button was clicked and send the client id along with the message
+        //socket.emit('clientClicked', this.innerHTML);
+        console.log(this.innerHTML);
+        //sent the change to the server
+        socket.emit('challenge', username, this.innerHTML);
+        challenger = this.innerHTML;
+        //sets this user to player1
+        iamP1 = true;
+        return false;
+    }
+    //when the roomname msg is rcieved set the room name
+    socket.on('roomname', function (msg) {
+        x = msg;
+        console.log("reci" + x);
+    });
+    //when a challenge msg is recieved
+    socket.on('incomingchallenge', function (msg, msg2) {
+        console.log(msg, msg2);
+        challenger = msg;
+        x = msg2;
+        //trigger the arent to acept/decline the challenge
+        challengeAlert();
+    });
+
+    //when a game is ove rth winnerid message is sent with the winners username
+    socket.on('winnerid', function (msg) {
+        // $('#win').append($('<li>').text(msg));
+        //remove the game screen
+        $('#inplay').hide();
+        //show the game over screen
+        $('#gameover').show();
+        //if this user won
+        if (msg == username) {
+            //show the winn image
+            document.getElementById("winimage").innerHTML = '<img src="images/win.jpg">';
+        }
+        //if this user lost
+        else {
+            //show the lose img
+            document.getElementById("winimage").innerHTML = '<img src="images/loser.jpg">';
+        }
+        //playerId, roomId exit room
+        socket.emit('closeroom', username, x);
+        //reset everything clinet side
+        document.getElementById("remain1").innerHTML = "";
+        document.getElementById("winmsg").innerHTML = "";
+        document.getElementById("remain2").innerHTML = "";
+        document.getElementById("usercardpic").innerHTML = '';
+        document.getElementById("oppcardpic").innerHTML = '';
+        document.getElementById("detail1").innerHTML = '';
+        document.getElementById("detail2").innerHTML = '';
+    });
+    //when the game is loaded on the server side this msg will be sent with all the game properties
+    socket.on('gameloaded', function (name, pturn, p1card, p2card, p1) {
+        console.log("here");
+        //set the users turn
+        turn = pturn;
+        //hide the challenge screen
+        $('#users').hide();
+        //show the paly screen
+        $('#inplay').show();
+        //playernames
+        document.getElementById("playernames").innerHTML = username.toUpperCase() + " -Vs- " + challenger.toUpperCase();
+        //used to display the users cards
+        setCards(p1card, p2card);
+        //sets if the server refers to this user as player1
+        if (p1 == username) {
+            iamP1 = true;
+        }
+        else {
+            iamP1 = false;
+        }
+        console.log(iamP1);
+        //game message set
+        if (pturn == username) {
+            document.getElementById("gamemsg").innerHTML = "<h3>Please select an attribute</h3>";
+        }
+        else {
+            document.getElementById("gamemsg").innerHTML = "<h3>Waiting on " + challenger + " to make a move </h3>";
+        }
+    });
+    //after each hand the result message is sent to both clients in the game
+    //the first result message will fill the contents of the compare screen
+    socket.on('result', function (move, p1length, p2length, pturn, p1card, p2card, winner) {
+        console.log(move);
+        console.log(p1length);
+        console.log(p2length);
+        compareView(move);
+        turn = pturn;
+        if (iamP1) {
+            document.getElementById("remain1").innerHTML = "<h4> Your Remaining: " + p1length + "</h4>";
+            // document.getElementById("remain2").innerHTML = p;
+            document.getElementById("remain2").innerHTML = "<h4>" + challenger + " remaining: " + p2length + "</h4>";
+        }
+        else {
+            document.getElementById("remain1").innerHTML = "<h4> You Remaining:" + p2length + "</h4>";
+            document.getElementById("remain2").innerHTML = "<h4>" + challenger + " remaining: " + p1length + "</h4>";
+        }
+        //usercardpic
+        document.getElementById("usercardpic").innerHTML = '<img src="images/' + myCard.photo + '">';
+        document.getElementById("oppcardpic").innerHTML = '<img src="images/' + oppCard.photo + '">';
+        //the users next card is loaded hers
+        setCards(p1card, p2card);
+        //the trun is set
+        turn = pturn;
+        console.log("won by" + winner);
+        //the game msgs are set here
+        if (username === winner) {
+            document.getElementById("winmsg").innerHTML = "<h5>You won this hand</h5>";
+        }
+        else {
+            document.getElementById("winmsg").innerHTML = "<h5>You lost this hand</h5>";
+        }
+        if (pturn == username) {
+            document.getElementById("gamemsg").innerHTML = "<h3>Please select an attribute</h3>";
+        }
+        else {
+            document.getElementById("gamemsg").innerHTML = "<h3>Waiting on " + challenger + " to make a move </h3>";
+        }
+    });
+    //used when a user selects an attribute on a card to inform the server
+    function myFunc(selected) {
+        console.log("test cat selected" + selected);
+        console.log(turn);
+        if (turn == username) {
+            socket.emit('playermove', selected, username, x);
+        }
+    }
+    //alert to allow the user to except or decline a challeneg
+    function challengeAlert() {
+            socket.emit('acceptchallenge', challenger, username, x);
+            iamP1 = true;
+        
+    }
+    //sets the users card
+    function setCards(p1card, p2card) {
+        $.each(cards, function (i, id) {
+            if (iamP1 && id.cardId) {
+                if (id.cardId === p1card) {
+                    console.log(id);
+                    myCard = id;
+                }
+                else if (id.cardId === p2card) {
+                    console.log(id);
+                    oppCard = id;
+                }
+            }
+            else {
+                if (id.cardId === p1card) {
+                    console.log(id);
+                    oppCard = id;
+                }
+                else if (id.cardId === p2card) {
+                    console.log(id);
+                    myCard = id;
+                }
+            }
+        });
+        //the pic of bith cards set on the compare screen
+        document.getElementById("cardpic").innerHTML = '<img src="images/' + myCard.photo + '">';
+        document.getElementById("cardname").innerHTML = '<h2>' + myCard.name + '</h2>';
+        //all previous buttons are removed
+        document.getElementById("cardbuttons").innerHTML = "";
+        //6 buttons added to reperesent each value on the cards
+        $('#cardbuttons').append($('<button id="cat1" onclick="myFunc(' + cat1 + ')">').text("Speed: " + myCard.cat1));
+        $('#cardbuttons').append($('<button id="cat2" onclick="myFunc(' + cat2 + ')">').text("Strength: " + myCard.cat2));
+        $('#cardbuttons').append($('<button id="cat3" onclick="myFunc(' + cat3 + ')">').text("Likeability: " + myCard.cat3));
+        $('#cardbuttons').append($('<button id="cat4" onclick="myFunc(' + cat4 + ')">').text("Agility: " + myCard.cat4));
+        $('#cardbuttons').append($('<button id="cat5" onclick="myFunc(' + cat5 + ')">').text("Fighting: " + myCard.cat5));
+        $('#cardbuttons').append($('<button id="cat6" onclick="myFunc(' + cat6 + ')">').text("Intelligence: " + myCard.cat6));
+        //cardbuttons
+    }
+    //this function is used to display the attribute selected in the previous hand on the compare screen
+    function compareView(selected) {
+        if (selected == "cat1") {
+            document.getElementById("detail1").innerHTML = "Speed : " + myCard.cat1;
+            document.getElementById("detail2").innerHTML = "Speed : " + oppCard.cat1;
+            console.log("cat1");
+        }
+        else if (selected == "cat2") {
+            console.log("cat2");
+            document.getElementById("detail1").innerHTML = "Speed : " + myCard.cat2;
+            document.getElementById("detail2").innerHTML = "Speed : " + oppCard.cat2;
+        }
+        else if (selected == "cat3") {
+            console.log("cat3");
+            document.getElementById("detail1").innerHTML = "Speed : " + myCard.cat3;
+            document.getElementById("detail2").innerHTML = "Speed : " + oppCard.cat3;
+        }
+        else if (selected == "cat4") {
+            console.log("cat4");
+            document.getElementById("detail1").innerHTML = "Speed : " + myCard.cat4;
+            document.getElementById("detail2").innerHTML = "Speed : " + oppCard.cat4;
+        }
+        else if (selected == "cat5") {
+            console.log("cat5");
+            document.getElementById("detail1").innerHTML = "Speed : " + myCard.cat5;
+            document.getElementById("detail2").innerHTML = "Speed : " + oppCard.cat5;
+        }
+        else if (selected == "cat6") {
+            console.log("cat6");
+            document.getElementById("detail1").innerHTML = "Speed : " + myCard.cat6;
+            document.getElementById("detail2").innerHTML = "Speed : " + oppCard.cat6;
+        }
+    }
+    //this is called to hide game over and allow the user to play another game
+    function reload() {
+        $('#users').show();
+        $('#gameover').hide();
+    }
+</script>
+</body>
+
+</html>

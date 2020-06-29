@@ -1,0 +1,29 @@
+{
+  "name": "trump-card",
+  "version": "1.0.0",
+  "description": "Trump Card Game",
+  "main": "server.js",
+  "scripts": {
+    "test": "\"echo \\\"Error: no test specified\\\" && exit 1\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sayedafif/trumpcard.git"
+  },
+  "keywords": [
+    "card",
+    "game",
+    "client/server"
+  ],
+  "author": "John Kenny",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sayedafif/trumpcard"
+  },
+  "homepage": "https://github.com/sayedafif/trumpcard#readme",
+  "dependencies": {
+    "bootstrap": "^3.3.7",
+    "express": "^4.15.2",
+    "socket.io": "^1.7.3"
+  }
+}
